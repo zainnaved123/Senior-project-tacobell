@@ -1,10 +1,6 @@
-import spacy
 import pymongo
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
-
-# Load spaCy model
-nlp = spacy.load("en_core_web_sm")
 
 # Load GPT-2 or a similar model (replace with your model if needed)
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
