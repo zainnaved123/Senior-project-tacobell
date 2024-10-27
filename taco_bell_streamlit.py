@@ -16,7 +16,7 @@ def detect_intent(user_input):
         'get_description': ['describe', 'description'],
         'get_menu': ['menu', 'items'],
         'ask_question': ['hours', 'open', 'deals'],
-        'view_order': ['my', 'current', 'order'],
+        'view_order': ['my', 'current', 'order', 'cart'],
         'complete_order': ['checkout', 'complete', 'finish'],
         'cancel_order': ['cancel', 'clear', 'reset']
     }
