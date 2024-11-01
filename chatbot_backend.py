@@ -13,12 +13,10 @@ tokenizer.pad_token = tokenizer.eos_token
 client = pymongo.MongoClient("mongodb+srv://tacobell2:utd@cluster0.u91bm.mongodb.net/")
 db = client["taco_bell_menu"]
 menu_collection = db["menu_items"]
-print(menu_collection)
 
 # Function to retrieve all menu items
 def get_menu_items():
     return list(menu_collection.find({}))
-    # return list(menu_collection.find({}, {'_id': 0})) # Exclude the MongoDB ID field
 
 # Function to extract full menu items by checking against the entire input string
 def extract_menu_items(user_input):
@@ -55,7 +53,6 @@ def show_menu():
 def generate_conversational_response(context):
     system_prompt = (
         "You are a chatbot for a Taco Bell restaurant. Your job is to assist customers in answering questions about the menu and placing their orders. "
-        # "You should greet customers warmly. Keep the conversation friendly and engaging. "
         "Only respond to questions or commands related to ordering food. Do not generate any other kind of response. "
     )
     
