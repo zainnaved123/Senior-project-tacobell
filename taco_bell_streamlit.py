@@ -112,7 +112,7 @@ def main():
             if st.session_state.order:
                 response = f"Your current order is {" ".join(st.session_state.order)}."
             else:
-                context = "The user asked to see their current order."
+                context = "The user asked to see their current order, but the user has not ordered anything."
                 response = replace_context(generate_conversational_response(context))
         
         elif intent == 'complete_order':
