@@ -1,7 +1,8 @@
 import streamlit as st
 import spacy
-from chatbot_backend import extract_menu_items, get_price, get_description, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, apply_modifications, extract_menu_items, get_price, get_description, show_menu, generate_conversational_response
 import logging
+from collections import defaultdict
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
@@ -20,7 +21,7 @@ def detect_intent(user_input):
         'complete_order': ['checkout', 'complete', 'finish'],
         'cancel_order': ['cancel', 'clear', 'reset']
     }
-    
+
     for token in doc:
         for intent, keywords in intents.items():
             if token.lemma_ in keywords:
@@ -33,7 +34,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Initialize session state if not already done
 if 'order' not in st.session_state:
-    st.session_state.order = []
+    st.session_state.order = defaultdict(int)
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []  # Stores (user_message, bot_response) tuples
 
@@ -54,6 +55,32 @@ def replace_context(response):
     new_response = new_response.replace("\n", "", 2)
     return new_response
 
+def process_user_input(user_input):
+    items_and_modifications = split_items(user_input)
+    
+    responses = []
+    for item_text in items_and_modifications:
+        item, quantity, modifications = detect_item_and_modifications(item_text)
+        print("here", modifications)
+
+        if item:
+            if modifications:
+                modification_message = apply_modifications(modifications)
+                st.session_state.order[f"{item["name"]} ({modification_message})"] += quantity
+                responses.append(f"{quantity} {item["name"]}(s) ({modification_message}) have been added to the order.")
+            else:
+                st.session_state.order[f"{item["name"]}"] += quantity
+                responses.append(f"{quantity} {item["name"]}(s) have been added to the order.")
+        else:
+            responses.append("An item in the user's order could not be recognized.")
+
+    # Combine responses
+    return " ".join(responses)
+
+def print_order():
+    # return ", ".join([f"{quantity} x {item}" for item, quantity in st.session_state.order])
+    return "\n\n".join([f"{quantity} x {item}" for item, quantity in st.session_state.order.items()])
+
 # Main Streamlit App
 def main():
     st.title("Taco Bell Chatbot")
@@ -66,17 +93,22 @@ def main():
     user_input = st.text_input("Type your message:")
 
     if st.button("Send"):
+        
+
         intent = detect_intent(user_input)
 
         if intent == 'place_order':
-            extracted_items = extract_menu_items(user_input)
-            if extracted_items:
-                st.session_state.order.extend(extracted_items)
-                context = f"The user added {', '.join(extracted_items)} to their order. The current order is {', '.join(st.session_state.order)}."
-                response = replace_context(generate_conversational_response(context))
-            else:
-                context = "The user tried to order something that is not on the menu."
-                response = replace_context(generate_conversational_response(context))
+            context = process_user_input(user_input)
+            response = replace_context(generate_conversational_response(context))
+
+            # extracted_items = extract_menu_items(user_input)
+            # if extracted_items:
+            #     st.session_state.order.extend(extracted_items)
+            #     context = f"The user added {', '.join(extracted_items)} to their order. The current order is {', '.join(st.session_state.order)}."
+            #     response = replace_context(generate_conversational_response(context))
+            # else:
+            #     context = "The user tried to order something that is not on the menu."
+            #     response = replace_context(generate_conversational_response(context))
 
         elif intent == 'remove_item':
             removed_items = extract_menu_items(user_input)
@@ -110,22 +142,23 @@ def main():
 
         elif intent == "view_order":
             if st.session_state.order:
-                response = f"Your current order is {" ".join(st.session_state.order)}."
+                response = f"Your current order is \n\n{print_order()}."
+                #response = f"Your current order is \n\n{print_order()} \n\nand your total is."
             else:
                 context = "The user asked to see their current order, but the user has not ordered anything."
                 response = replace_context(generate_conversational_response(context))
         
         elif intent == 'complete_order':
-            context = f"The user has finished their order. The final order is {', '.join(st.session_state.order)}."
+            context = f"The user has finished their order. The final order is {print_order()}."
             response = replace_context(generate_conversational_response(context))
-            st.write(f"Final order: {st.session_state.order}")
+            st.write("\n\n")
+            st.write(f"Final order: {print_order()}")
             logging.info(f"logging Final order: {st.session_state.order}")
 
         elif intent == 'cancel_order':
             st.session_state.order.clear()
             context = "The user cancelled the entire order."
             response = replace_context(generate_conversational_response(context))
-            st.session_state.order.clear()
             # st.write("Order has been cancelled.")
 
         else:
