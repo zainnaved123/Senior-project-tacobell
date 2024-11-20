@@ -71,7 +71,6 @@ def detect_modifications(input_text, item):
     modifications = []
     for pattern, action in modification_patterns:
         matches = re.findall(pattern, input_text, flags=re.IGNORECASE)
-        print("there", pattern, action, matches)
         for match in matches:
             if action == "remove":
                 if match.lower() in item["ingredients"]:
