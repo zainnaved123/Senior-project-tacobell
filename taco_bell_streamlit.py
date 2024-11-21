@@ -24,7 +24,7 @@ intents = {
     'get_gluten_free': ['gluten'],
     'get_menu': ['menu', 'items'],
     'ask_question': ['hours', 'open', 'deals'],
-    'view_order': ['my', 'current', 'order', 'cart'],
+    'view_order': ['my', 'current', 'order', 'cart', 'total'],
     'complete_order': ['checkout', 'complete', 'finish'],
     'cancel_order': ['cancel', 'clear', 'reset']
 }
@@ -70,6 +70,8 @@ logging.basicConfig(level=logging.INFO)
 # Initialize session state if not already done
 if 'order' not in st.session_state:
     st.session_state.order = defaultdict(int)
+if 'total' not in st.session_state:
+    st.session_state.total = 0.0
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []  # Stores (user_message, bot_response) tuples
 
@@ -169,6 +171,7 @@ def update_order(commands):
         have_or_has = "have" if quantity > 1 else "has"
 
         if intent == "add_item":
+            st.session_state.total += item["price"] *quantity
             if modifications:
                 modification_message = apply_modifications(modifications)
                 st.session_state.order[f"{item["name"]} ({modification_message})"] += quantity
@@ -178,6 +181,7 @@ def update_order(commands):
                 responses.append(f"{quantity} {item_name} {have_or_has} been added to your order.")
         elif intent == "remove_item":
             st.session_state.order[item["name"]] = max(0, st.session_state.order[item["name"]] - quantity)
+            st.session_state.total -= item["price"] * quantity
             responses.append(f"{quantity} {item_name} {have_or_has} been removed from your order.")
     return " ".join(responses)
 
@@ -278,8 +282,8 @@ def main():
 
         elif intent == "view_order":
             if st.session_state.order:
-                response = f"Your current order is \n\n{print_order()}."
-                #response = f"Your current order is \n\n{print_order()} \n\nand your total is."
+                #response = f"Your current order is \n\n{print_order()}."
+                response = f"Your current order is \n\n{print_order()}\n\nand your total is ${st.session_state.total:.2f}."
             else:
                 context = "The user asked to see their current order, but the user has not ordered anything."
                 response = replace_context(generate_conversational_response(context))
