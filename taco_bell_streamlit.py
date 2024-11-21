@@ -9,7 +9,7 @@ import re
 nlp = spacy.load("en_core_web_sm")
 
 intents = {
-    'add_item': ['want', 'get', 'add', 'have'],
+    'add_item': ['want', 'get', 'add', 'have', 'do'],
     'remove_item': ['remove', 'delete'],
     'get_price': ['price', 'cost', 'much'],
     'get_description': ['describe', 'description'],
@@ -252,7 +252,8 @@ def main():
     user_input = st.text_input("Type your message:")
 
     if st.button("Send"):
-        simplified_input = simplify_sentence(user_input)
+        simplified_input = user_input.replace("Let's", "").strip()
+        simplified_input = simplify_sentence(simplified_input)
         intent = detect_intent(simplified_input)
 
         if intent == 'add_item' or intent == 'remove_item':
