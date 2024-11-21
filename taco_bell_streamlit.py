@@ -152,7 +152,7 @@ def parse_user_input(user_input):
                 "quantity": quantity,
                 "modifications": modifications
             })
-    print(results)
+
     return results
 
 def update_order(commands):
@@ -165,17 +165,20 @@ def update_order(commands):
             responses.append("An item in the user's order could not be recognized.")
             continue
 
+        item_name = item["name"] + "s" if quantity > 1 else item["name"]
+        have_or_has = "have" if quantity > 1 else "has"
+
         if intent == "add_item":
             if modifications:
                 modification_message = apply_modifications(modifications)
                 st.session_state.order[f"{item["name"]} ({modification_message})"] += quantity
-                responses.append(f"{quantity} {item["name"]}(s) ({modification_message}) have been added to the order.")
+                responses.append(f"{quantity} {item_name} ({modification_message}) {have_or_has} been added to your order.")
             else:
                 st.session_state.order[f"{item["name"]}"] += quantity
-                responses.append(f"{quantity} {item["name"]}(s) have been added to the order.")
+                responses.append(f"{quantity} {item_name} {have_or_has} been added to your order.")
         elif intent == "remove_item":
             st.session_state.order[item["name"]] = max(0, st.session_state.order[item["name"]] - quantity)
-            responses.append(f"{quantity} {item["name"]}(s) have been removed from the order.")
+            responses.append(f"{quantity} {item_name} {have_or_has} been removed from your order.")
     return " ".join(responses)
 
 def process_user_input(user_input):
