@@ -125,6 +125,11 @@ def show_burritos():
     burritos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "taco" in item["tags"]])
     return f"Here’s a list of our delicious burritos at Taco Bell:\n\n{burritos}"
 
+def show_sides():
+    menu_items = get_menu_items()
+    sides = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "side" in item["tags"]])
+    return f"Here are the sides we offer at Taco Bell:\n\n{sides}"
+
 def show_drinks():
     menu_items = get_menu_items()
     drinks = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "drink" in item["tags"]])

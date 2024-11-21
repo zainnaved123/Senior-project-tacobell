@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_drinks, show_sauces, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_sides, show_drinks, show_sauces, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
@@ -15,6 +15,7 @@ intents = {
     'get_description': ['describe', 'description'],
     'get_tacos': ['taco'],
     'get_burritos': ['burrito', 'burritos'],
+    'get_sides': ['side'],
     'get_drinks': ['drink', 'beverage', 'soda', 'refreshment'],
     'get_sauces': ['sauce'],
     'get_menu': ['menu', 'items'],
@@ -52,6 +53,7 @@ def detect_intent(user_input):
     doc = nlp(user_input.lower())
 
     for token in doc:
+        print(token.lemma_)
         for intent, keywords in intents.items():
             if token.lemma_ in keywords:
                 return intent
@@ -235,6 +237,8 @@ def main():
             response = show_tacos()
         elif intent == 'get_burritos':
             response = show_burritos()
+        elif intent == 'get_sides':
+            response = show_sides()
         elif intent == 'get_drinks':
             response = show_drinks()
         elif intent == 'get_sauces':
