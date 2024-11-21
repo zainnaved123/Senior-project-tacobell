@@ -135,6 +135,10 @@ def show_sauces():
     sauces = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "sauce" in item["tags"]])
     return f"At Taco Bell, we have a variety of delicious sauces to choose from! Here’s a list of what we offer:\n\n{sauces}"
 
+def show_dairy():
+    dairy = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "dairy" in item["tags"]])
+    return f"Many of our menu items contain dairy, including cheese, sour cream, and sauces. Some of the items that typically contain dairy include:\n\n{dairy}"
+
 def show_gluten_free():
     gluten_free = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "gluten" not in item["tags"]])
     return f"At Taco Bell, we offer several gluten-free options, though please keep in mind that cross-contamination is always possible due to shared kitchen equipment. Here are some of our gluten-free choices:\n\n{gluten_free}"
