@@ -15,6 +15,9 @@ client = pymongo.MongoClient("mongodb+srv://tacobell2:utd@cluster0.u91bm.mongodb
 db = client["taco_bell_menu"]
 menu_items = db["menu_items"]
 
+# Retrieve all menu items
+menu_items = list(menu_items.find({}))
+
 # Define modification patterns
 modification_patterns = [
     (r"\b(?:no|without)\b\s*(\w+)", "remove"),  # e.g., "no pickles" or "without pickles" 
@@ -59,7 +62,7 @@ def detect_quantity(item_text):
 
 # Detect the item in the order (e.g., "Burger", "Pizza")
 def detect_item(input_text):
-    menu_items = get_menu_items()
+    
     for item in menu_items:
         if item["name"].lower() in input_text:
             return item
@@ -67,7 +70,7 @@ def detect_item(input_text):
 
 # Detect modifications (like "no lettuce", "extra cheese", etc.)
 def detect_modifications(input_text, item):
-    menu_items = get_menu_items()
+    
     modifications = []
     for pattern, action in modification_patterns:
         matches = re.findall(pattern, input_text, flags=re.IGNORECASE)
@@ -96,52 +99,43 @@ def apply_modifications(modifications):
         return "No modifications."
     return ", ".join(modifications)
 
-# Function to retrieve all menu items
-def get_menu_items():
-    return list(menu_items.find({}))
-
 def get_price(user_input):
-    menu_items = get_menu_items()
     for item in menu_items:
         if item['name'].lower() in user_input.lower():
             return f"The price of {item['name']} is ${item['price']}."
     return "I couldn't find that item in the menu."
 
 def get_description(user_input):
-    menu_items = get_menu_items()
     for item in menu_items:
         if item['name'].lower() in user_input.lower():
             return f"{item['description']}"
     return ""
 
 def show_tacos():
-    menu_items = get_menu_items()
     tacos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "taco" in item["tags"]])
-
     return f"We’ve got a variety of delicious tacos to choose from. Here are some of our options:\n\n{tacos}"
 
 def show_burritos():
-    menu_items = get_menu_items()
     burritos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "taco" in item["tags"]])
     return f"Here’s a list of our delicious burritos at Taco Bell:\n\n{burritos}"
 
+def show_nachos():
+    nachos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "nachos" in item["tags"]])
+    return f"Great question! We have several delicious nacho options for you:\n\n{nachos}"
+
 def show_sides():
-    menu_items = get_menu_items()
     sides = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "side" in item["tags"]])
     return f"Here are the sides we offer at Taco Bell:\n\n{sides}"
 
 def show_drinks():
-    menu_items = get_menu_items()
     drinks = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "drink" in item["tags"]])
     return f"At Taco Bell, we offer a variety of refreshing drinks to complement your meal. Here's what we have:\n\n{drinks}"
 
 def show_sauces():
-    menu_items = get_menu_items()
     sauces = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "sauce" in item["tags"]])
     return f"At Taco Bell, we have a variety of delicious sauces to choose from! Here’s a list of what we offer:\n\n{sauces}"
 
 def show_menu():
-    menu_items = get_menu_items()
     menu_str = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items])
     return f"Here's what's on our Taco Bell menu:\n\n{menu_str}"
 

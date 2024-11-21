@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_sides, show_drinks, show_sauces, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_sides, show_drinks, show_sauces, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
@@ -15,6 +15,7 @@ intents = {
     'get_description': ['describe', 'description'],
     'get_tacos': ['taco'],
     'get_burritos': ['burrito', 'burritos'],
+    'get_nachos': ['nachos'],
     'get_sides': ['side'],
     'get_drinks': ['drink', 'beverage', 'soda', 'refreshment'],
     'get_sauces': ['sauce'],
@@ -218,7 +219,7 @@ def main():
     if st.button("Send"):
 
         intent = detect_intent(user_input)
-        print("DETECTED INTENTION: ", intent, " FOR ", user_input)
+        print("DETECTED INTENT: ", intent, " FOR ", user_input)
 
         if intent == 'add_item' or intent == 'remove_item':
             context = process_user_input(user_input)
@@ -237,6 +238,8 @@ def main():
             response = show_tacos()
         elif intent == 'get_burritos':
             response = show_burritos()
+        elif intent == 'get_nachos':
+            response = show_nachos()
         elif intent == 'get_sides':
             response = show_sides()
         elif intent == 'get_drinks':
