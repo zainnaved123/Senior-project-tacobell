@@ -101,8 +101,8 @@ def parse_user_input(user_input):
     intent_pattern = r'\b(?:' + '|'.join(intents["add_item"] + intents["remove_item"]) + r')\b'
     quantity_pattern = r'\b(?:' + '|'.join(text_to_number.keys()) + r'|\d+)\b'
     pattern = (
-        r'(?:\s+(?P<quantity>' + quantity_pattern + r'))?'  # Match quantity (optional)
-        r'\s+(?P<item>.+?)(?:s\b|$)'  # Match item
+        r'(?:\s*+(?P<quantity>' + quantity_pattern + r'))?'  # Match quantity (optional)
+        r'\s*+(?P<item>.+?)(?:s\b|$)'  # Match item
     )
 
     # Split the input into potential commands
@@ -139,7 +139,7 @@ def parse_user_input(user_input):
             # Extract quantity, converting text-based numbers to integers if necessary
             quantity_raw = match.group("quantity")
             if quantity_raw:
-                quantity = text_to_number.get(quantity_raw.lower(), int(quantity_raw))  # Handle text or digit
+                quantity = int(text_to_number.get(quantity_raw, quantity_raw))  # Handle text or digit
             else:
                 quantity = 1  # Default quantity is 1 if none is specified
 
@@ -152,7 +152,7 @@ def parse_user_input(user_input):
                 "quantity": quantity,
                 "modifications": modifications
             })
-
+    print(results)
     return results
 
 def update_order(commands):
@@ -205,8 +205,19 @@ def alternate_process_user_input(user_input):
     return " ".join(responses)
 
 def print_order():
-    # return ", ".join([f"{quantity} x {item}" for item, quantity in st.session_state.order])
-    return "\n\n".join([f"{quantity} x {item}" for item, quantity in st.session_state.order.items()])
+    order = []
+    size_keywords = ["small", "medium", "large"]
+    size_pattern = r'\b(' + '|'.join(size_keywords) + r')\b'
+
+    for item_name, quantity in st.session_state.order.items():
+        # Find all occurrences of size keywords in the sentence
+        size = re.match(size_pattern, item_name, re.IGNORECASE)
+        
+        if size:
+            order.append(f"{quantity} x {size.group()} {item_name}")
+        else:
+            order.append(f"{quantity} x {item_name}")
+    return "\n\n".join(order)
 
 # Main Streamlit App
 def main():
