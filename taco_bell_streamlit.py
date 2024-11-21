@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_sides, show_drinks, show_sauces, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_sides, show_drinks, show_sauces, show_gluten_free, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
@@ -19,6 +19,7 @@ intents = {
     'get_sides': ['side'],
     'get_drinks': ['drink', 'beverage', 'soda', 'refreshment'],
     'get_sauces': ['sauce'],
+    'get_gluten_free': ['gluten'],
     'get_menu': ['menu', 'items'],
     'ask_question': ['hours', 'open', 'deals'],
     'view_order': ['my', 'current', 'order', 'cart'],
@@ -246,6 +247,8 @@ def main():
             response = show_drinks()
         elif intent == 'get_sauces':
             response = show_sauces()
+        elif intent == 'get_gluten_free':
+            response = show_gluten_free()
         elif intent == 'get_menu':
             response = show_menu()
         

@@ -135,6 +135,10 @@ def show_sauces():
     sauces = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "sauce" in item["tags"]])
     return f"At Taco Bell, we have a variety of delicious sauces to choose from! Here’s a list of what we offer:\n\n{sauces}"
 
+def show_gluten_free():
+    gluten_free = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "gluten" not in item["tags"]])
+    return f"At Taco Bell, we offer several gluten-free options, though please keep in mind that cross-contamination is always possible due to shared kitchen equipment. Here are some of our gluten-free choices:\n\n{gluten_free}"
+
 def show_menu():
     menu_str = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items])
     return f"Here's what's on our Taco Bell menu:\n\n{menu_str}"
