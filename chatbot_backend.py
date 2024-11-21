@@ -62,11 +62,14 @@ def detect_quantity(item_text):
 
 # Detect the item in the order (e.g., "Burger", "Pizza")
 def detect_item(input_text):
-    
     for item in menu_items:
         if item["name"].lower() in input_text:
             return item
     return None
+
+# Detect if the item is a drink (e.g. Pepsi, MTN DEW)
+def is_drink(item):
+    return "drink" in item["tags"] or "Drinks" in item["tags"]
 
 # Detect modifications (like "no lettuce", "extra cheese", etc.)
 def detect_modifications(input_text, item):

@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_bowls, show_sides, show_drinks, show_sauces, show_dairy, show_gluten_free, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, is_drink, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_bowls, show_sides, show_drinks, show_sauces, show_dairy, show_gluten_free, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
@@ -10,7 +10,7 @@ nlp = spacy.load("en_core_web_sm")
 
 intents = {
     'add_item': ['want', 'get', 'add', 'have'],
-    'remove_item': ['remove', 'take out', 'delete'],
+    'remove_item': ['remove', 'delete'],
     'get_price': ['price', 'cost', 'much'],
     'get_description': ['describe', 'description'],
     'get_tacos': ['taco'],
@@ -53,13 +53,19 @@ text_to_number = {
     'ninety-five': '95', 'ninety-six': '96', 'ninety-seven': '97', 'ninety-eight': '98', 'ninety-nine': '99'
 }
 
-def detect_intent(user_input):
+def simplify_sentence(user_input):
     doc = nlp(user_input.lower())
+    simplified_sentence = []
 
     for token in doc:
-        print(token.lemma_)
+        simplified_sentence.append(token.lemma_)
+
+    return " ".join(simplified_sentence)
+
+def detect_intent(input):
+    for word in input.split():
         for intent, keywords in intents.items():
-            if token.lemma_ in keywords:
+            if word in keywords:
                 return intent
 
     return 'unknown_intent'
@@ -102,6 +108,8 @@ def parse_user_input(user_input):
     """
     intent_pattern = r'\b(?:' + '|'.join(intents["add_item"] + intents["remove_item"]) + r')\b'
     quantity_pattern = r'\b(?:' + '|'.join(text_to_number.keys()) + r'|\d+)\b'
+    size_keywords = ["small", "medium", "large"]
+    size_pattern = r'\b(' + '|'.join(size_keywords) + r')\b'    # Find all occurrences of size keywords in the sentence
     pattern = (
         r'(?:\s*+(?P<quantity>' + quantity_pattern + r'))?'  # Match quantity (optional)
         r'\s*+(?P<item>.+?)(?:s\b|$)'  # Match item
@@ -114,8 +122,8 @@ def parse_user_input(user_input):
 
     # Split the input keeping quantity amounts
     for word, number in text_to_number.items():
-        user_input = user_input.replace(word, f"| {word}")
-        user_input = user_input.replace(number, f"| {number}")
+        user_input = user_input.replace(f" {word} ", f"| {word} ")
+        user_input = user_input.replace(f" {number} ", f"| {number} ")
     
     commands = user_input.split("|") # Split input into individual commands
 
@@ -133,8 +141,9 @@ def parse_user_input(user_input):
         if match:
             # Extract item name
             item_name = match.group("item").strip()
-            item = detect_item(item_name)
+            item = detect_item(item_name.lower())
 
+            # Continue to next command if current command was changing intent
             if not item and intent_match:
                 continue
 
@@ -148,11 +157,18 @@ def parse_user_input(user_input):
             # Extract modifications
             modifications = detect_modifications(command, item) if item else []
 
+            # Extract size
+            size = None
+            size_match = re.search(size_pattern, command.strip(), re.IGNORECASE)
+            if item and is_drink(item):
+                size = size_match.group(0) if size_match else "medium"
+
             results.append({
                 "intent": intent,
                 "item": item,
                 "quantity": quantity,
-                "modifications": modifications
+                "modifications": modifications,
+                "size": size
             })
 
     return results
@@ -161,28 +177,34 @@ def update_order(commands):
     responses = []
 
     for command in commands:
-        intent, item, quantity, modifications = command.values()
+        intent, item, quantity, modifications, size = command.values()
 
         if not item:
             responses.append("An item in the user's order could not be recognized.")
             continue
 
-        item_name = item["name"] + "s" if quantity > 1 else item["name"]
+        item_name = item["name"]
         have_or_has = "have" if quantity > 1 else "has"
 
+        if size:
+            item_name = f"{size.capitalize()} {item_name}"
+        if modifications:
+            modification_message = apply_modifications(modifications)
+            item_name = item_name + f" ({modification_message})"
+
         if intent == "add_item":
-            st.session_state.total += item["price"] *quantity
-            if modifications:
-                modification_message = apply_modifications(modifications)
-                st.session_state.order[f"{item["name"]} ({modification_message})"] += quantity
-                responses.append(f"{quantity} {item_name} ({modification_message}) {have_or_has} been added to your order.")
-            else:
-                st.session_state.order[f"{item["name"]}"] += quantity
-                responses.append(f"{quantity} {item_name} {have_or_has} been added to your order.")
+            st.session_state.order[item_name] += quantity
+            st.session_state.total += item["price"] * quantity
+            responses.append(f"{quantity} {item_name + "s" if quantity > 1 else item_name} {have_or_has} been added to your order.")
+
         elif intent == "remove_item":
-            st.session_state.order[item["name"]] = max(0, st.session_state.order[item["name"]] - quantity)
-            st.session_state.total -= item["price"] * quantity
-            responses.append(f"{quantity} {item_name} {have_or_has} been removed from your order.")
+            amount = min(quantity, st.session_state.order[item_name])
+            st.session_state.order[item_name] -= amount
+            if st.session_state.order[item_name] == 0:
+                st.session_state.order.pop(item_name)
+            st.session_state.total -= item["price"] * amount
+            responses.append(f"{amount} {item_name + "s" if quantity > 1 else item_name} {have_or_has} been removed from your order.")
+    
     return " ".join(responses)
 
 def process_user_input(user_input):
@@ -213,17 +235,10 @@ def alternate_process_user_input(user_input):
 
 def print_order():
     order = []
-    size_keywords = ["small", "medium", "large"]
-    size_pattern = r'\b(' + '|'.join(size_keywords) + r')\b'
 
     for item_name, quantity in st.session_state.order.items():
-        # Find all occurrences of size keywords in the sentence
-        size = re.match(size_pattern, item_name, re.IGNORECASE)
-        
-        if size:
-            order.append(f"{quantity} x {size.group()} {item_name}")
-        else:
-            order.append(f"{quantity} x {item_name}")
+        order.append(f"{quantity} x {item_name}")
+
     return "\n\n".join(order)
 
 # Main Streamlit App
@@ -232,24 +247,22 @@ def main():
 
     # Display chat history
     st.write("### Chat:")
-    # display_chat_history()
 
     # User input for order
     user_input = st.text_input("Type your message:")
 
     if st.button("Send"):
-
-        intent = detect_intent(user_input)
-        print("DETECTED INTENT: ", intent, " FOR ", user_input)
+        simplified_input = simplify_sentence(user_input)
+        intent = detect_intent(simplified_input)
 
         if intent == 'add_item' or intent == 'remove_item':
-            context = process_user_input(user_input)
+            context = process_user_input(simplified_input)
             response = replace_context(generate_conversational_response(context))
         
         elif intent == "get_price":
-            response = get_price(user_input)
+            response = get_price(simplified_input)
         elif intent == "get_description":
-            description = get_description(user_input)
+            description = get_description(simplified_input)
             if description:
                 response = description
             else:
@@ -282,7 +295,6 @@ def main():
 
         elif intent == "view_order":
             if st.session_state.order:
-                #response = f"Your current order is \n\n{print_order()}."
                 response = f"Your current order is \n\n{print_order()}\n\nand your total is ${st.session_state.total:.2f}."
             else:
                 context = "The user asked to see their current order, but the user has not ordered anything."
