@@ -123,6 +123,10 @@ def show_nachos():
     nachos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "nachos" in item["tags"]])
     return f"Great question! We have several delicious nacho options for you:\n\n{nachos}"
 
+def show_bowls():
+    bowls = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "bowl" in item["tags"]])
+    return f"We have a variety of delicious bowls to satisfy your cravings! Our options include:\n\n{bowls}"
+
 def show_sides():
     sides = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "side" in item["tags"]])
     return f"Here are the sides we offer at Taco Bell:\n\n{sides}"
