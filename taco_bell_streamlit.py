@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, extract_menu_items, get_price, get_description, show_drinks, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_drinks, show_sauces, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
@@ -13,7 +13,10 @@ intents = {
     'remove_item': ['remove', 'take out', 'delete'],
     'get_price': ['price', 'cost', 'much'],
     'get_description': ['describe', 'description'],
-    'get_drinks': ['drink', 'drinks', 'beverage',  'beverages', 'soda', 'refreshment', 'refreshments'],
+    'get_tacos': ['taco'],
+    'get_burritos': ['burrito', 'burritos'],
+    'get_drinks': ['drink', 'beverage', 'soda', 'refreshment'],
+    'get_sauces': ['sauce'],
     'get_menu': ['menu', 'items'],
     'ask_question': ['hours', 'open', 'deals'],
     'view_order': ['my', 'current', 'order', 'cart'],
@@ -171,7 +174,6 @@ def update_order(commands):
 
 def process_user_input(user_input):
     commands = parse_user_input(user_input)
-    print("COMMANDS", commands)
     response = update_order(commands)
     return response
 
@@ -214,26 +216,14 @@ def main():
     if st.button("Send"):
 
         intent = detect_intent(user_input)
+        print("DETECTED INTENTION: ", intent, " FOR ", user_input)
 
         if intent == 'add_item' or intent == 'remove_item':
             context = process_user_input(user_input)
             response = replace_context(generate_conversational_response(context))
-
-        # elif intent == 'remove_item':
-        #     removed_items = extract_menu_items(user_input)
-        #     if removed_items:
-        #         for item in removed_items:
-        #             if item in st.session_state.order:
-        #                 st.session_state.order.remove(item)
-        #         context = f"The user removed {', '.join(removed_items)} from their order. The current order is {', '.join(st.session_state.order)}."
-        #         response = replace_context(generate_conversational_response(context))
-        #     else:
-        #         context = "The user tried to remove something that is not in the order."
-        #         response = replace_context(generate_conversational_response(context))
         
         elif intent == "get_price":
             response = get_price(user_input)
-
         elif intent == "get_description":
             description = get_description(user_input)
             if description:
@@ -241,10 +231,14 @@ def main():
             else:
                 context = "The chatbot couldn't find what the user was looking for."
                 response = replace_context(generate_conversational_response(context))
-
+        elif intent == 'get_tacos':
+            response = show_tacos()
+        elif intent == 'get_burritos':
+            response = show_burritos()
         elif intent == 'get_drinks':
             response = show_drinks()
-
+        elif intent == 'get_sauces':
+            response = show_sauces()
         elif intent == 'get_menu':
             response = show_menu()
         

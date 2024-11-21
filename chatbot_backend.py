@@ -100,19 +100,6 @@ def apply_modifications(modifications):
 def get_menu_items():
     return list(menu_items.find({}))
 
-# old
-# Function to extract full menu items by checking against the entire input string
-def extract_menu_items(user_input):
-    user_input_lower = user_input.lower()
-    found_items = []
-    menu_items_in_db = get_menu_items()
-    
-    for item in menu_items_in_db:
-        if "name" in item:
-            if item["name"].lower() in user_input_lower:
-                found_items.append(item["name"].lower())
-    return found_items
-
 def get_price(user_input):
     menu_items = get_menu_items()
     for item in menu_items:
@@ -127,10 +114,26 @@ def get_description(user_input):
             return f"{item['description']}"
     return ""
 
+def show_tacos():
+    menu_items = get_menu_items()
+    tacos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "taco" in item["tags"]])
+
+    return f"We’ve got a variety of delicious tacos to choose from. Here are some of our options:\n\n{tacos}"
+
+def show_burritos():
+    menu_items = get_menu_items()
+    burritos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "taco" in item["tags"]])
+    return f"Here’s a list of our delicious burritos at Taco Bell:\n\n{burritos}"
+
 def show_drinks():
     menu_items = get_menu_items()
-    drinks = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items if "drink" in item["tags"]])
+    drinks = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "drink" in item["tags"]])
     return f"At Taco Bell, we offer a variety of refreshing drinks to complement your meal. Here's what we have:\n\n{drinks}"
+
+def show_sauces():
+    menu_items = get_menu_items()
+    sauces = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "sauce" in item["tags"]])
+    return f"At Taco Bell, we have a variety of delicious sauces to choose from! Here’s a list of what we offer:\n\n{sauces}"
 
 def show_menu():
     menu_items = get_menu_items()
