@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, extract_menu_items, get_price, get_description, show_menu, generate_conversational_response
+from chatbot_backend import split_items, detect_item_and_modifications, detect_item, detect_modifications, apply_modifications, extract_menu_items, get_price, get_description, show_drinks, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
@@ -241,6 +241,9 @@ def main():
             else:
                 context = "The chatbot couldn't find what the user was looking for."
                 response = replace_context(generate_conversational_response(context))
+
+        elif intent == 'get_drinks':
+            response = show_drinks()
 
         elif intent == 'get_menu':
             response = show_menu()

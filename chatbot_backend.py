@@ -127,10 +127,15 @@ def get_description(user_input):
             return f"{item['description']}"
     return ""
 
+def show_drinks():
+    menu_items = get_menu_items()
+    drinks = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items if "drink" in item["tags"]])
+    return f"At Taco Bell, we offer a variety of refreshing drinks to complement your meal. Here's what we have:\n\n{drinks}"
+
 def show_menu():
     menu_items = get_menu_items()
     menu_str = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items])
-    return f"Here is our Taco Bell menu:\n\n{menu_str}"
+    return f"Here's what's on our Taco Bell menu:\n\n{menu_str}"
 
 # Function to generate conversational responses using GPT-2 or another model
 def generate_conversational_response(context):
