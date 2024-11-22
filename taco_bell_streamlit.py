@@ -26,10 +26,29 @@ def add_custom_styles():
         [data-testid="stAppViewContainer"] {
             background-color: #FFF8E1; /* Soft cream background */
         }
+        /* Sidebar Styling */
         [data-testid="stSidebar"] {
-            background-color: #5C2D91; /* Purple sidebar */
-            width: 160px !important; /* Reduce sidebar width by 50% */
+            background-color: #5C2D91; /* Purple background */
+            width: 160px !important; /* Force sidebar width */
+            min-width: 160px !important; /* Set minimum width */
+            max-width: 160px !important; /* Set maximum width */
         }
+
+        /* Adjust Sidebar Content Alignment */
+        [data-testid="stSidebar"] .block-container {
+            padding: 0; /* Remove default padding */
+            text-align: center; /* Center content */
+        }
+
+        /* Adjust Sidebar Button Styles */
+        [data-testid="stSidebar"] button {
+            font-size: 12px; /* Adjust font size for narrow layout */
+            padding: 5px 10px; /* Adjust button padding */
+        }
+        [data-testid="stSidebar"]::-webkit-scrollbar {
+            display: none; /* Hide scrollbar */
+        }
+
         h1, h2, h3, h4, h5, h6 {
             color: #5C2D91; /* Purple headings */
         }
@@ -124,52 +143,54 @@ def add_custom_styles():
             border-radius: 5px;
         }
 
-        /* Chat Container */
+        /* Parent Container */
         .chat-container {
             display: flex;
             flex-direction: column;
-            gap: 20px; /* Proper spacing between bubbles */
-            max-height: 500px;
+            gap: 10px;
+            max-height: 400px;
+            width: 300px;
             overflow-y: auto;
-            padding: 15px;
+            padding: 10px;
             background-color: #FFFFFF;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            margin: 0 auto; /* Center the chat container */
         }
 
         /* Chat Bubbles */
         .chat-bubble {
             padding: 10px 15px;
             border-radius: 20px;
-            font-size: 16px;
-            line-height: 1.5;
+            font-size: 14px;
+            line-height: 1.4;
             display: inline-block;
-            max-width: 75%;
+            max-width: 85%;
             word-wrap: break-word;
+            margin: 5px 0;
         }
         .user-message {
             background-color: #DCF8C6; /* Light green */
             align-self: flex-end;
-            text-align: right;
+            text-align: left; /* Left-align text inside bubble */
+            margin-left: 25%;
             color: black;
-            margin-left: auto; /* Right align */
         }
         .bot-message {
             background-color: #F1F1F1; /* Light gray */
             align-self: flex-start;
             text-align: left;
+            margin-right: 50%;
             color: black;
-            margin-right: auto; /* Left align */
         }
 
         /* Dynamic Input Field Styling */
         .stTextInput > div {
             position: fixed;
-            bottom: 20px;
-            width: 100%;
-            max-width: calc(100% - 180px); /* Adjust dynamically based on sidebar width */
-            margin-left: auto;
-            margin-right: auto;
+            bottom: 10px;
+            width: calc(100% - 40px); /* Dynamically fit input field */
+            max-width: 300px;
+            margin: 0 auto;
             display: flex;
             gap: 10px;
             z-index: 1000;
@@ -182,8 +203,7 @@ def add_custom_styles():
             padding: 10px;
             border: 2px solid #5C2D91;
             border-radius: 25px;
-            font-size: 16px;
-            color: black;
+            font-size: 14px;
             background-color: white;
             outline: none;
         }
@@ -192,8 +212,8 @@ def add_custom_styles():
             color: white;
             border: none;
             border-radius: 25px;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 10px 15px;
+            font-size: 14px;
             cursor: pointer;
         }
         .custom-send-button:hover {
