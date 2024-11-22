@@ -11,7 +11,7 @@ myenv\Scripts\activate
 
 pip3 install -r "requirements.txt"
 
-streamlit run taco_bell_streamlit.py
+streamlit run app.py
 
 to check if db is running and which port
 ps aux | grep mongod

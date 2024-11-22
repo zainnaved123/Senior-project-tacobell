@@ -1,12 +1,11 @@
 import streamlit as st
-import spacy
-import time
-from chatbot_backend import extract_menu_items, get_price, get_description, show_menu
+from chatbot_logic import parse_user_input, simplify_sentence, remove_context, detect_intent, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_bowls, show_sides, show_drinks, show_sauces, show_dairy, show_gluten_free, show_menu, show_categorized_menu, generate_conversational_response
 import logging
-import re
+from collections import defaultdict
+import time
 
-# Load spaCy model
-nlp = spacy.load("en_core_web_sm")
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
 # Set page layout and theme
 st.set_page_config(page_title="Taco Bell Chatbot", layout="wide")
@@ -248,11 +247,13 @@ def add_custom_styles():
         unsafe_allow_html=True,
     )
 
-# Initialize session state
-if "order" not in st.session_state:
-    st.session_state.order = []  # Stores items in the order
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # Chat history
+# Initialize session state if not already done
+if 'order' not in st.session_state:
+    st.session_state.order = defaultdict(int)  # item name: quantity
+if 'total' not in st.session_state:
+    st.session_state.total = 0.0  # total $ amount
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []  # Stores (user_message, bot_response) tuples
 if "current_page" not in st.session_state:
     st.session_state.current_page = "order"  # Default page
 
@@ -267,46 +268,141 @@ def navbar():
         if st.button("Help"):
             st.session_state.current_page = "help"
 
-# Intent detection
-def detect_intent(user_input):
-    doc = nlp(user_input.lower())
-    intents = {
-        "place_order": ["want", "get", "add", "have"],
-        "remove_item": ["remove", "take out", "delete"],
-        "get_price": ["price", "cost"],
-        "get_description": ["describe", "description"],
-        "get_menu": ["menu", "items"],
-        "ask_question": ["hours", "open", "deals"],
-        "view_order": ["my", "current", "order", "cart"],
-        "complete_order": ["checkout", "complete", "finish"],
-        "cancel_order": ["cancel", "clear", "reset"],
-    }
-    for token in doc:
-        for intent, keywords in intents.items():
-            if token.lemma_ in keywords:
-                return intent
-    return "unknown_intent"
+# Function to display chat history in a chat-like format
+def display_chat_history():
+    for user_message, bot_response in reversed(st.session_state.chat_history):
+        if len(st.session_state.chat_history) > 1:
+            st.write("\n\n\n\n")
+
+        # Display the user message
+        st.markdown(f"**You:** {user_message}")
+        # Display the chatbot response
+        st.markdown(f"**Chatbot:** {bot_response}")
+
+# Update order
+def update_order(commands):
+    responses = []
+
+    for command in commands:
+        intent, item, quantity, modifications, size = command.values()
+
+        # Check if the item is recognized
+        if not item:
+            responses.append("An item in the user's order could not be recognized.")
+            continue    # Skip to the next command
+
+        item_name = item["name"]    # Extract item name
+        have_or_has = "have" if quantity > 1 else "has"
+
+        # Add size information to the item name if size is provided
+        if size:
+            item_name = f"{size.capitalize()} {item_name}"
+
+        # Add modifications if needed
+        if modifications:
+            modification_message = apply_modifications(modifications)
+            item_name = item_name + f" ({modification_message})"
+
+        # Handle the 'add_item' intent
+        if intent == "add_item":
+            st.session_state.order[item_name] += quantity  # Update the order with the added item quantity
+            st.session_state.total += item["price"] * quantity  # Update the total price
+            # Generate response message about the added items
+            responses.append(f"{quantity} {item_name + "s" if quantity > 1 else item_name} {have_or_has} been added to your order.")
+
+        elif intent == "remove_item":
+            amount = min(quantity, st.session_state.order[item_name])  # Ensure not removing more than what's in the order
+            st.session_state.order[item_name] -= amount  # Update the order after removal
+            # If the item count is zero, remove it from the order entirely
+            if st.session_state.order[item_name] == 0:
+                st.session_state.order.pop(item_name)
+            st.session_state.total -= item["price"] * amount  # Update the total price after removal
+            # Generate response message about the removed items
+            responses.append(f"{amount} {item_name + "s" if quantity > 1 else item_name} {have_or_has} been removed from your order.")
+    
+    # Return all the responses as a single string, joining them with a space
+    return " ".join(responses)
+
+def process_user_input(user_input):
+    commands = parse_user_input(user_input)
+    response = update_order(commands)
+    return response
+
+def print_order():
+    order = []
+
+    for item_name, quantity in st.session_state.order.items():
+        order.append(f"{quantity} x {item_name}")
+
+    return "\n\n".join(order)
+
 
 # Chatbot logic
 def handle_message(user_input):
-    intent = detect_intent(user_input)
-    response = ""
+    simplified_input = user_input.replace("Let's", "").strip()
+    simplified_input = simplify_sentence(simplified_input)
+    intent = detect_intent(simplified_input)
 
-    if intent == "place_order":
-        extracted_items = extract_menu_items(user_input)
-        if extracted_items:
-            for item in extracted_items:
-                st.session_state.order.append(item["name"])
-            response = f"Added {', '.join([item['name'] for item in extracted_items])} to your order."
+    if intent == 'add_item' or intent == 'remove_item':
+        context = process_user_input(simplified_input)
+        response = remove_context(generate_conversational_response(context))
+    
+    elif intent == "get_price":
+        response = get_price(simplified_input)
+    elif intent == "get_description":
+        description = get_description(simplified_input)
+        if description:
+            response = description
         else:
-            response = "Couldn't find the item in the menu."
+            context = "The chatbot couldn't find what the user was looking for."
+            response = remove_context(generate_conversational_response(context))
+    elif intent == 'get_tacos':
+        response = show_tacos()
+    elif intent == 'get_burritos':
+        response = show_burritos()
+    elif intent == 'get_nachos':
+        response = show_nachos()
+    elif intent == 'get_bowls':
+        response = show_bowls()
+    elif intent == 'get_sides':
+        response = show_sides()
+    elif intent == 'get_drinks':
+        response = show_drinks()
+    elif intent == 'get_sauces':
+        response = show_sauces()
+    elif intent == 'get_dairy':
+        response = show_dairy()
+    elif intent == 'get_gluten_free':
+        response = show_gluten_free()
+    elif intent == 'get_menu':
+        response = show_menu()
+    
+    elif intent == 'ask_question':
+        context = f"The user asked: '{user_input}'"
+        response = remove_context(generate_conversational_response(context))
+
     elif intent == "view_order":
-        response = f"Your current order: {', '.join(st.session_state.order) if st.session_state.order else 'Your order is empty.'}"
-    elif intent == "cancel_order":
+        if st.session_state.order:
+            response = f"Your current order is \n\n{print_order()}\n\nand your total is ${st.session_state.total:.2f}."
+        else:
+            context = "The user asked to see their current order, but the user has not ordered anything."
+            response = remove_context(generate_conversational_response(context))
+    
+    elif intent == 'complete_order':
+        context = f"The user has finished their order. The final order is {print_order()}."
+        response = remove_context(generate_conversational_response(context))
+        st.write("\n\n")
+        st.write(f"Final order: {print_order()}")
+        logging.info(f"logging Final order: {st.session_state.order}")
+
+    elif intent == 'cancel_order':
         st.session_state.order.clear()
-        response = "Your order has been canceled."
+        context = "The user cancelled the entire order."
+        response = remove_context(generate_conversational_response(context))
+
     else:
-        response = "Sorry, I didn't understand that."
+        context = "The chatbot couldn't understand the user's question."
+        response = remove_context(generate_conversational_response(context))
 
     return response
 
@@ -334,7 +430,7 @@ def show_menu_page():
     )
 
     # Fetch categorized menu items
-    categorized_menu = show_menu()
+    categorized_menu = show_categorized_menu()
 
     # Render Menu Items Dynamically
     for category, items in categorized_menu.items():
@@ -378,7 +474,6 @@ def show_order_page():
     # Define the message submission handler
     def submit_message():
         if "chat_input" in st.session_state and st.session_state.chat_input.strip():  # Ensure there's input
-            print("CHAT INPUT: ", st.session_state.chat_input)
             # Append user message and bot response to the chat history
             response = handle_message(st.session_state.chat_input)
             st.session_state.chat_history.append((st.session_state.chat_input, response))
@@ -446,7 +541,9 @@ def show_help_page():
         """
     )
 
-# Main function to handle page routing
+
+
+# Main Streamlit App
 def main():
     add_custom_styles()
     navbar()
