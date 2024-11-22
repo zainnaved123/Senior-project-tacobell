@@ -11,7 +11,7 @@ model = AutoModelForCausalLM.from_pretrained("gpt2").to("cuda" if torch.cuda.is_
 tokenizer.pad_token = tokenizer.eos_token
 
 # Connect to MongoDB
-client = pymongo.MongoClient("mongodb+srv://tacobell2:utd@cluster0.u91bm.mongodb.net/")
+client = pymongo.MongoClient("mongodb+srv://tacobot1:chalupa@cluster0.u91bm.mongodb.net/")
 db = client["taco_bell_menu"]
 menu_collection = db["menu_items"]
 
@@ -59,8 +59,35 @@ def get_description(user_input):
 
 def show_menu():
     menu_items = get_menu_items()
-    menu_str = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items])
-    return f"Here is our Taco Bell menu:\n\n{menu_str}"
+
+    # Initialize categories in the specified order
+    categories = [
+        "Tacos",
+        "Burritos",
+        "Quesadillas",
+        "Specialties",
+        "Bowls & Salads",
+        "Sides & Snacks",
+        "Desserts",
+        "Sauces & Extras",
+        "Drinks",
+    ]
+
+    categorized_menu = {category: [] for category in categories}  # Create empty lists for each category
+
+    # Categorize items based on their tags
+    for item in menu_items:
+        if "tags" in item:  # Check if tags exist
+            for category in categories:
+                if category in item["tags"]:  # Match tags to categories
+                    categorized_menu[category].append({
+                        "name": item["name"],
+                        "price": item["price"],
+                        "description": item["description"],
+                    })
+                    break  # Stop after assigning the item to the first matching category
+
+    return categorized_menu
 
 # Function to generate conversational responses using GPT-2 or another model
 def generate_conversational_response(context):
