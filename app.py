@@ -8,9 +8,9 @@ logging.basicConfig(level=logging.INFO)
 
 # Initialize session state if not already done
 if 'order' not in st.session_state:
-    st.session_state.order = defaultdict(int)
+    st.session_state.order = defaultdict(int)  # item name: quantity
 if 'total' not in st.session_state:
-    st.session_state.total = 0.0
+    st.session_state.total = 0.0  # total $ amount
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []  # Stores (user_message, bot_response) tuples
 

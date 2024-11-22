@@ -83,11 +83,6 @@ text_to_number = {
     'ninety-five': '95', 'ninety-six': '96', 'ninety-seven': '97', 'ninety-eight': '98', 'ninety-nine': '99'
 }
 
-def process_user_input(user_input):
-    commands = parse_user_input(user_input)
-    response = update_order(commands)
-    return response
-
 def parse_user_input(user_input):
     """
     Parses the user's input to extract multiple commands for intents (add_item/remove_item), menu items,
