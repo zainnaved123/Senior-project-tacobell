@@ -207,7 +207,6 @@ def is_drink(item):
 
 # Detect modifications (like "no lettuce", "extra cheese", etc.)
 def detect_modifications(input_text, item):
-    
     modifications = []
     for pattern, action in modification_patterns:
         matches = re.findall(pattern, input_text, flags=re.IGNORECASE)
@@ -215,19 +214,15 @@ def detect_modifications(input_text, item):
             if action == "remove":
                 if match.lower() in item["ingredients"]:
                     modifications.append(f"no {match}")
-                    # item["ingredients"].remove(match.lower())
             elif action == "add":
                 if match.lower() not in item["ingredients"]:
                     modifications.append(f"add {match}")
-                    # item["ingredients"].append(match.lower())
             elif action == "substitute":
                 parts = match.split(" with ")
                 if len(parts) == 2:
                     old, new = parts
                     if old.lower() in item["ingredients"]:
                         modifications.append(f"substitute {old} with {new}")
-                        # item["ingredients"].remove(old.lower())
-                        # item["ingredients"].append(new.lower())
     return modifications
 
 # Apply modifications to an item and return a summary of the changes
@@ -248,6 +243,8 @@ def get_description(user_input):
             return f"{item['description']}"
     return ""
 
+# Retrieve and display various menu items, categorized by type (tacos, burritos, nachos, bowls, sides, drinks, sauces, dairy, gluten-free)
+# and provide formatted output including item names and prices. Each function generates a message tailored to its specific category.
 def show_tacos():
     tacos = "\n\n".join([f"{item['name']} - ${item['price']}" for item in menu_items if "taco" in item["tags"]])
     return f"We’ve got a variety of delicious tacos to choose from. Here are some of our options:\n\n{tacos}"
@@ -290,6 +287,7 @@ def show_menu():
 
 # Function to generate conversational responses using GPT-2 or another model
 def generate_conversational_response(context):
+    # Define the system prompt that sets the behavior of the chatbot
     system_prompt = (
         "You are a chatbot for a Taco Bell restaurant. Your job is to assist customers in answering questions about the menu and placing their orders. "
         "Only respond to questions or commands related to ordering food. Do not generate any other kind of response. "
@@ -298,7 +296,10 @@ def generate_conversational_response(context):
     # Combine the system prompt with the current context
     full_prompt = f"{system_prompt}\n\n{context}"
     
+    # Tokenize the prompt
     inputs = tokenizer(full_prompt, return_tensors="pt", padding=True, truncation=True).to(model.device)
+
+    # Generate a response from the model using the input tokens and attention mask
     outputs = model.generate(
         inputs["input_ids"], 
         attention_mask=inputs["attention_mask"],  
@@ -306,5 +307,7 @@ def generate_conversational_response(context):
         pad_token_id=tokenizer.eos_token_id,  
         do_sample=True
     )
+
+    # Decode the model's output to get the generated text
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return response.strip()

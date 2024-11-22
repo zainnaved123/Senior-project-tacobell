@@ -1,9 +1,7 @@
 import streamlit as st
-import spacy
 from chatbot_logic import parse_user_input, simplify_sentence, remove_context, detect_intent, split_items, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_bowls, show_sides, show_drinks, show_sauces, show_dairy, show_gluten_free, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
-import re
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -75,25 +73,6 @@ def process_user_input(user_input):
     commands = parse_user_input(user_input)
     response = update_order(commands)
     return response
-    items_and_modifications = split_items(user_input)
-    
-    responses = []
-    for item_text in items_and_modifications:
-        item, quantity, modifications = detect_item_and_modifications(item_text)
-
-        if item:
-            if modifications:
-                modification_message = apply_modifications(modifications)
-                st.session_state.order[f"{item["name"]} ({modification_message})"] += quantity
-                responses.append(f"{quantity} {item["name"]}(s) ({modification_message}) have been added to the order.")
-            else:
-                st.session_state.order[f"{item["name"]}"] += quantity
-                responses.append(f"{quantity} {item["name"]}(s) have been added to the order.")
-        else:
-            responses.append("An item in the user's order could not be recognized.")
-
-    # Combine responses
-    return " ".join(responses)
 
 def print_order():
     order = []
@@ -174,7 +153,6 @@ def main():
             st.session_state.order.clear()
             context = "The user cancelled the entire order."
             response = remove_context(generate_conversational_response(context))
-            # st.write("Order has been cancelled.")
 
         else:
             context = "The chatbot couldn't understand the user's question."
