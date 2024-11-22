@@ -1,6 +1,6 @@
 import streamlit as st
 import spacy
-from chatbot_backend import split_items, detect_item_and_modifications, is_drink, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_bowls, show_sides, show_drinks, show_sauces, show_dairy, show_gluten_free, show_menu, generate_conversational_response
+from chatbot_logic import split_items, detect_item_and_modifications, is_drink, detect_item, detect_modifications, apply_modifications, get_price, get_description, show_tacos, show_burritos, show_nachos, show_bowls, show_sides, show_drinks, show_sauces, show_dairy, show_gluten_free, show_menu, generate_conversational_response
 import logging
 from collections import defaultdict
 import re
