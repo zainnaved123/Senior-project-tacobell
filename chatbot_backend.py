@@ -1,6 +1,8 @@
 import pymongo
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
+from dotenv import load_dotenv
+import os
 import re
 
 # Load GPT-2 or a similar model (replace with your model if needed)
@@ -10,9 +12,16 @@ model = AutoModelForCausalLM.from_pretrained("gpt2").to("cuda" if torch.cuda.is_
 # Set the padding token to eos_token (End of Sequence token) to avoid padding errors
 tokenizer.pad_token = tokenizer.eos_token
 
+# Load environment variables from the .env file
+load_dotenv()
+
+# Get the MongoDB URI from the environment variables
+mongodb_uri = os.getenv('MONGODB_URI')
+
 # Connect to MongoDB
-client = pymongo.MongoClient("mongodb+srv://tacobell2:utd@cluster0.u91bm.mongodb.net/")
+client = pymongo.MongoClient(mongodb_uri)
 db = client["taco_bell_menu"]
+print("Connected to MongoDB")
 menu_items = db["menu_items"]
 
 # Retrieve all menu items
