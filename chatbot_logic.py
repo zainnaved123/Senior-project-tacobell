@@ -184,11 +184,6 @@ def detect_intent(input):
 
     return 'unknown_intent'
 
-# Split input into items (e.g. "2 tacos and 2 burritos" -> ["2 tacos", "2 burritos"])
-def split_items(user_input):
-    # This regex splits based on common separators such as 'and' or commas, while also considering numbers.
-    return re.split(r'(?<=\d)\s*(?:and|,)\s*', user_input.lower())
-
 # Detect the item in the order (e.g., "Burger", "Pizza")
 def detect_item(input_text):
     for item in menu_items:
@@ -279,6 +274,36 @@ def show_gluten_free():
 def show_menu():
     menu_str = "\n\n".join([f"{item['name']} - ${item['price']} : {item['description']}" for item in menu_items])
     return f"Here's what's on our Taco Bell menu:\n\n{menu_str}"
+
+def show_categorized_menu():
+    # Initialize categories in the specified order
+    categories = [
+        "Tacos",
+        "Burritos",
+        "Quesadillas",
+        "Specialties",
+        "Bowls & Salads",
+        "Sides & Snacks",
+        "Desserts",
+        "Sauces & Extras",
+        "Drinks",
+    ]
+
+    categorized_menu = {category: [] for category in categories}  # Create empty lists for each category
+
+    # Categorize items based on their tags
+    for item in menu_items:
+        if "tags" in item:  # Check if tags exist
+            for category in categories:
+                if category in item["tags"]:  # Match tags to categories
+                    categorized_menu[category].append({
+                        "name": item["name"],
+                        "price": item["price"],
+                        "description": item["description"],
+                    })
+                    break  # Stop after assigning the item to the first matching category
+
+    return categorized_menu
 
 # Function to generate conversational responses using GPT-2 or another model
 def generate_conversational_response(context):
