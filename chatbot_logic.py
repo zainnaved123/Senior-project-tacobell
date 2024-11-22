@@ -4,6 +4,7 @@ import torch
 from dotenv import load_dotenv
 import os
 import re
+import spacy
 
 # Load GPT-2 or a similar model (replace with your model if needed)
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
@@ -27,6 +28,30 @@ menu_items = db["menu_items"]
 # Retrieve all menu items
 menu_items = list(menu_items.find({}))
 
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
+
+intents = {
+    'add_item': ['want', 'get', 'add', 'have', 'do'],
+    'remove_item': ['remove', 'delete'],
+    'get_price': ['price', 'cost', 'much'],
+    'get_description': ['describe', 'description'],
+    'get_tacos': ['taco'],
+    'get_burritos': ['burrito', 'burritos'],
+    'get_nachos': ['nachos'],
+    'get_bowls': ['bowl'],
+    'get_sides': ['side'],
+    'get_drinks': ['drink', 'beverage', 'soda', 'refreshment'],
+    'get_sauces': ['sauce'],
+    'get_dairy': ['dairy'],
+    'get_gluten_free': ['gluten'],
+    'get_menu': ['menu', 'items'],
+    'ask_question': ['hours', 'open', 'deals'],
+    'view_order': ['my', 'current', 'order', 'cart', 'total'],
+    'complete_order': ['checkout', 'complete', 'finish'],
+    'cancel_order': ['cancel', 'clear', 'reset']
+}
+
 # Define modification patterns
 modification_patterns = [
     (r"\b(?:no|without)\b\s*(\w+)", "remove"),  # e.g., "no pickles" or "without pickles" 
@@ -34,40 +59,140 @@ modification_patterns = [
     (r"\b(?:substitute|swap|replace)\b\s*(\w+)\s*with\s*(\w+)", "substitute"),  # e.g., "substitute lettuce with onions"
 ]
 
-# A dictionary to map written numbers to their numeric values
-word_to_number = {
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
-    "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
-    "twenty": 20
+text_to_number = {
+    'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+    'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'eleven': '11',
+    'twelve': '12', 'thirteen': '13', 'fourteen': '14', 'fifteen': '15', 'sixteen': '16',
+    'seventeen': '17', 'eighteen': '18', 'nineteen': '19', 'twenty': '20', 'twenty-one': '21',
+    'twenty-two': '22', 'twenty-three': '23', 'twenty-four': '24', 'twenty-five': '25',
+    'twenty-six': '26', 'twenty-seven': '27', 'twenty-eight': '28', 'twenty-nine': '29',
+    'thirty': '30', 'thirty-one': '31', 'thirty-two': '32', 'thirty-three': '33',
+    'thirty-four': '34', 'thirty-five': '35', 'thirty-six': '36', 'thirty-seven': '37',
+    'thirty-eight': '38', 'thirty-nine': '39', 'forty': '40', 'forty-one': '41',
+    'forty-two': '42', 'forty-three': '43', 'forty-four': '44', 'forty-five': '45',
+    'forty-six': '46', 'forty-seven': '47', 'forty-eight': '48', 'forty-nine': '49',
+    'fifty': '50', 'fifty-one': '51', 'fifty-two': '52', 'fifty-three': '53', 'fifty-four': '54',
+    'fifty-five': '55', 'fifty-six': '56', 'fifty-seven': '57', 'fifty-eight': '58', 'fifty-nine': '59',
+    'sixty': '60', 'sixty-one': '61', 'sixty-two': '62', 'sixty-three': '63', 'sixty-four': '64',
+    'sixty-five': '65', 'sixty-six': '66', 'sixty-seven': '67', 'sixty-eight': '68', 'sixty-nine': '69',
+    'seventy': '70', 'seventy-one': '71', 'seventy-two': '72', 'seventy-three': '73', 'seventy-four': '74',
+    'seventy-five': '75', 'seventy-six': '76', 'seventy-seven': '77', 'seventy-eight': '78', 'seventy-nine': '79',
+    'eighty': '80', 'eighty-one': '81', 'eighty-two': '82', 'eighty-three': '83', 'eighty-four': '84',
+    'eighty-five': '85', 'eighty-six': '86', 'eighty-seven': '87', 'eighty-eight': '88', 'eighty-nine': '89',
+    'ninety': '90', 'ninety-one': '91', 'ninety-two': '92', 'ninety-three': '93', 'ninety-four': '94',
+    'ninety-five': '95', 'ninety-six': '96', 'ninety-seven': '97', 'ninety-eight': '98', 'ninety-nine': '99'
 }
+
+def process_user_input(user_input):
+    commands = parse_user_input(user_input)
+    response = update_order(commands)
+    return response
+
+def parse_user_input(user_input):
+    """
+    Parses the user's input to extract multiple commands for intents (add_item/remove_item), menu items,
+    quantities, and modifications
+
+    Returns:
+        list[dict]: A list of dictionaries containing 'intent', 'item', 'quantity', and 'modifications' for each command.
+    """
+    intent_pattern = r'\b(?:' + '|'.join(intents["add_item"] + intents["remove_item"]) + r')\b'
+    quantity_pattern = r'\b(?:' + '|'.join(text_to_number.keys()) + r'|\d+)\b'
+    size_keywords = ["small", "medium", "large"]
+    size_pattern = r'\b(' + '|'.join(size_keywords) + r')\b'    # Find all occurrences of size keywords in the sentence
+    pattern = (
+        r'(?:\s*+(?P<quantity>' + quantity_pattern + r'))?'  # Match quantity (optional)
+        r'\s*+(?P<item>.+?)(?:s\b|$)'  # Match item
+    )
+
+    # Split the input into potential commands
+    delimiters = [',', 'and', ';', '&']
+    for delimiter in delimiters:
+        user_input = user_input.replace(delimiter, "|")
+
+    # Split the input keeping quantity amounts
+    for word, number in text_to_number.items():
+        user_input = user_input.replace(f" {word} ", f"| {word} ")
+        user_input = user_input.replace(f" {number} ", f"| {number} ")
+    
+    commands = user_input.split("|") # Split input into individual commands
+
+    results = []
+    intent = "add_item"
+    for command in commands:
+        # Check if intent is specified, otherwise defaults to 'add_item'
+        intent_match = re.search(intent_pattern, command.strip(), re.IGNORECASE)
+        if intent_match:
+            # Extract intent and determine whether it's an add or remove action
+            intent_word = intent_match.group(0).lower()
+            intent = "add_item" if intent_word in intents["add_item"] else "remove_item"
+
+        match = re.search(pattern, command.strip(), re.IGNORECASE)
+        if match:
+            # Extract item name
+            item_name = match.group("item").strip()
+            item = detect_item(item_name.lower())
+
+            # Continue to next command if current command was changing intent
+            if not item and intent_match:
+                continue
+
+            # Extract quantity, converting text-based numbers to integers if necessary
+            quantity_raw = match.group("quantity")
+            if quantity_raw:
+                quantity = int(text_to_number.get(quantity_raw, quantity_raw))  # Handle text or digit
+            else:
+                quantity = 1  # Default quantity is 1 if none is specified
+
+            # Extract modifications
+            modifications = detect_modifications(command, item) if item else []
+
+            # Extract size
+            size = None
+            size_match = re.search(size_pattern, command.strip(), re.IGNORECASE)
+            if item and is_drink(item):
+                size = size_match.group(0) if size_match else "medium"
+
+            results.append({
+                "intent": intent,
+                "item": item,
+                "quantity": quantity,
+                "modifications": modifications,
+                "size": size
+            })
+
+    return results
+
+# Simplify sentence using spaCy
+def simplify_sentence(user_input):
+    doc = nlp(user_input.lower())
+    simplified_sentence = []
+
+    for token in doc:
+        simplified_sentence.append(token.lemma_)
+
+    return " ".join(simplified_sentence)
+
+# Remove the context message from the chatbot's output
+def remove_context(response):
+    system_prompt = "You are a chatbot for a Taco Bell restaurant. Your job is to assist customers in answering questions about the menu and placing their orders. Only respond to questions or commands related to ordering food. Do not generate any other kind of response."
+    new_response = response.replace(system_prompt, "")
+    new_response = new_response.replace("\n", "", 2)
+    return new_response
+
+# Identify intent from keywords
+def detect_intent(input):
+    for word in input.split():
+        for intent, keywords in intents.items():
+            if word in keywords:
+                return intent
+
+    return 'unknown_intent'
 
 # Split input into items (e.g. "2 tacos and 2 burritos" -> ["2 tacos", "2 burritos"])
 def split_items(user_input):
     # This regex splits based on common separators such as 'and' or commas, while also considering numbers.
     return re.split(r'(?<=\d)\s*(?:and|,)\s*', user_input.lower())
-
-# Detect item, quantity, and modifications from a chunk of the input (e.g., "2 tacos with no lettuce")
-def detect_item_and_modifications(item_text):
-    quantity = detect_quantity(item_text)
-    item = detect_item(item_text)
-    modifications = detect_modifications(item_text, item) if item else []
-    return item, quantity, modifications
-
-# Detect the quantity (e.g., "2" in "2 tacos" or "one" in "one taco")
-def detect_quantity(item_text):
-    # First, try to detect the quantity as a written number (e.g., "one", "two")
-    for word, num in word_to_number.items():
-        if word in item_text:
-            return num
-    
-    # If no written number is found, fallback to detecting numeric digits
-    quantity_match = re.search(r'(\d+)\s*', item_text)
-    if quantity_match:
-        return int(quantity_match.group(1))
-    
-    return 1  # Default to 1 if no quantity is mentioned
 
 # Detect the item in the order (e.g., "Burger", "Pizza")
 def detect_item(input_text):
